@@ -1,12 +1,10 @@
 export interface Usuario {
   id: string;
-  email: string;
   nome: string;
-  tipo: 'cliente' | 'tatuador';
-  telefone?: string;
-  created_at: string;
+  email: string;
+  role?: string;   
+  tipo?: string;   
 }
-
 export interface Servico {
   id: string;
   nome: string;

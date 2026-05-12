@@ -1,270 +1,189 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
-import { Agendamento, Estoque } from '../types';
-import { Calendar, Package, AlertTriangle, LogOut, DollarSign, CheckCircle } from 'lucide-react';
-
+import { 
+  Calendar, Package, LogOut, 
+  Users, Plus, Trash2, Camera, Clock, Loader2, CheckCircle2
+} from 'lucide-react';
+import AdminConfig from './AdminConfig'; 
 
 const API_URL = 'http://localhost:5000/api';
 
-export default function TatuadorDashboard() {
-  const { usuario, signOut } = useAuth();
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
-  const [estoque, setEstoque] = useState<Estoque[]>([]);
-  const [activeTab, setActiveTab] = useState<'agendamentos' | 'estoque'>('agendamentos');
+interface TatuadorDashboardProps {
+  activeTab?: string;
+}
+
+export default function TatuadorDashboard({ activeTab: externalTab }: TatuadorDashboardProps) {
+  const { usuario, signOut } = useAuth(); 
+  const [agendamentos, setAgendamentos] = useState<any[]>([]);
+  const [estoque, setEstoque] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const activeTab = externalTab || 'dashboard';
+  const [novaFoto, setNovaFoto] = useState('');
 
   useEffect(() => {
-    loadAgendamentos();
-    loadEstoque();
-
-    
-  }, []);
-
-  const loadAgendamentos = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/agendamentos`);
-      if (response.data) setAgendamentos(response.data);
-    } catch (err) {
-      console.error("Erro ao carregar agendamentos do Atlas:", err);
-    }
-  };
-
-  const loadEstoque = async () => {
-    try {
-      const response = await axios.get(`${API_URL}/estoque`);
-      if (response.data) setEstoque(response.data);
-    } catch (err) {
-      console.error("Erro ao carregar estoque:", err);
-    }
-  };
-
-  const handleConfirmar = async (id: string) => {
-    try {
-      await axios.put(`${API_URL}/agendamentos/${id}`, { status: 'confirmado' });
-      loadAgendamentos();
-    } catch (err) {
-      alert('Erro ao confirmar agendamento no servidor');
-    }
-  };
-
-  const handleConcluir = async (id: string) => {
-    try {
-      await axios.put(`${API_URL}/agendamentos/${id}`, { status: 'concluido' });
-      alert('✅ Agendamento concluído! Materiais foram baixados do estoque.');
-      
-      
-      await baixarEstoqueNoServidor();
-      
-      loadAgendamentos();
-    } catch (err) {
-      alert('Erro ao concluir agendamento');
-    }
-  };
-
-  const baixarEstoqueNoServidor = async () => {
-    const itensParaBaixar = [
-      { nome: 'Agulhas Descartáveis', quantidade: 2 },
-      { nome: 'Luvas Descartáveis', quantidade: 2 },
-    ];
-
-    try {
-      
-      await axios.post(`${API_URL}/estoque/baixa`, { itens: itensParaBaixar });
-      loadEstoque();
-    } catch (err) {
-      console.error("Erro ao processar baixa de estoque");
-    }
-  };
-
-  const handleReporEstoque = async (id: string, quantidade: number) => {
-    const novaQuantidade = prompt('Digite a nova quantidade:', quantidade.toString());
-    if (novaQuantidade) {
+    const loadData = async () => {
       try {
-        await axios.put(`${API_URL}/estoque/${id}`, { 
-          quantidade: parseInt(novaQuantidade) 
-        });
-        loadEstoque();
-      } catch (err) {
-        alert('Erro ao atualizar estoque');
+        setLoading(true);
+        const [a, e] = await Promise.all([
+          axios.get(`${API_URL}/agendamentos`),
+          axios.get(`${API_URL}/estoque`)
+        ]);
+        setAgendamentos(a.data || []);
+        setEstoque(e.data || []);
+      } catch (err) { 
+        console.error("Erro ao carregar dados", err); 
+      } finally {
+        setLoading(false);
       }
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors = {
-      pendente: 'bg-yellow-900/30 text-yellow-400 border-yellow-500/30',
-      confirmado: 'bg-blue-900/30 text-blue-400 border-blue-500/30',
-      pago: 'bg-green-900/30 text-green-400 border-green-500/30',
-      cancelado: 'bg-red-900/30 text-red-400 border-red-500/30',
-      concluido: 'bg-gray-700 text-gray-300 border-gray-600'
     };
-    return colors[status as keyof typeof colors] || colors.pendente;
-  };
+    loadData();
+  }, [activeTab]);
 
-  const agendamentosFuturos = agendamentos.filter(a =>
-    new Date(a.data_hora) >= new Date() && a.status !== 'concluido' && a.status !== 'cancelado'
-  );
-
-  const estoqueAlerta = estoque.filter(e => e.quantidade <= e.nivel_minimo);
-  const totalFaturamento = agendamentos
-    .filter(a => a.status === 'pago' || a.status === 'concluido')
-    .reduce((sum, a) => sum + a.valor_total, 0);
+  // Funcionalidade do Loader2: Tela de carregamento técnica e elegante
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+        <Loader2 className="text-[#EAB308] animate-spin" size={40} />
+        <p className="text-[#EAB308] text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">
+          Sincronizando StudioMaster...
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">
-              Dashboard - StudioMaster
-            </h1>
-            <p className="text-gray-400">Área Administrativa - {usuario?.nome}</p>
-          </div>
-          <button
-            onClick={() => signOut()}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-            Sair
-          </button>
-        </div>
-
-        {/* Cards de Métricas */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-blue-900/40 to-blue-800/20 rounded-2xl p-6 border border-blue-700/30">
-            <div className="flex items-center gap-4">
-              <Calendar className="w-12 h-12 text-blue-400" />
-              <div>
-                <p className="text-blue-300 text-sm">Agendamentos Futuros</p>
-                <p className="text-3xl font-bold text-white">{agendamentosFuturos.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-yellow-900/40 to-yellow-800/20 rounded-2xl p-6 border border-yellow-700/30">
-            <div className="flex items-center gap-4">
-              <AlertTriangle className="w-12 h-12 text-yellow-400" />
-              <div>
-                <p className="text-yellow-300 text-sm">Alertas de Estoque</p>
-                <p className="text-3xl font-bold text-white">{estoqueAlerta.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-green-900/40 to-green-800/20 rounded-2xl p-6 border border-green-700/30">
-            <div className="flex items-center gap-4">
-              <DollarSign className="w-12 h-12 text-green-400" />
-              <div>
-                <p className="text-green-300 text-sm">Faturamento Total</p>
-                <p className="text-3xl font-bold text-white">R$ {totalFaturamento.toFixed(2)}</p>
-              </div>
-            </div>
+    <div className="animate-in fade-in duration-700">
+      {/* HEADER COM LOGOUT E USUÁRIOS */}
+      <div className="mb-10 flex justify-between items-start">
+        <div>
+          <h1 className="text-4xl font-black text-white tracking-tighter uppercase italic">
+            PAINEL DO <span className="text-[#EAB308]">TATUADOR</span>
+          </h1>
+          <div className="flex items-center gap-4 mt-2">
+            <p className="text-white/40 font-medium italic border-l-2 border-[#EAB308] pl-4 uppercase text-[10px] tracking-widest flex items-center gap-2">
+              <Users size={12} className="text-[#EAB308]" /> Profissional: {usuario?.nome}
+            </p>
           </div>
         </div>
 
-        {/* Tabs de Controle */}
-        <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
-          <div className="flex border-b border-gray-700">
-            <button
-              onClick={() => setActiveTab('agendamentos')}
-              className={`flex-1 px-6 py-4 font-semibold transition-all ${
-                activeTab === 'agendamentos'
-                  ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
-              }`}
-            >
-              <Calendar className="inline w-5 h-5 mr-2" />
-              Agendamentos
-            </button>
-            <button
-              onClick={() => setActiveTab('estoque')}
-              className={`flex-1 px-6 py-4 font-semibold transition-all ${
-                activeTab === 'estoque'
-                  ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
-              }`}
-            >
-              <Package className="inline w-5 h-5 mr-2" />
-              Controle de Estoque
-            </button>
-          </div>
+        <button 
+          onClick={signOut}
+          className="flex items-center gap-2 bg-white/5 hover:bg-red-500/10 text-white/40 hover:text-red-500 px-4 py-2 rounded-xl border border-white/5 transition-all text-[10px] font-black uppercase tracking-widest"
+        >
+          <LogOut size={14} /> Sair do Sistema
+        </button>
+      </div>
 
-          <div className="p-6">
-            {activeTab === 'agendamentos' ? (
-              <div className="space-y-4">
-                {agendamentos.length === 0 ? (
-                  <p className="text-gray-400 text-center py-12">Nenhum agendamento registrado no Atlas</p>
-                ) : (
-                  agendamentos.map((agendamento) => (
-                    <div
-                      key={agendamento.id}
-                      className="bg-gray-700 rounded-xl p-6 border border-gray-600"
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="font-bold text-white text-lg">{agendamento.servico?.nome}</h3>
-                          <p className="text-gray-300">Cliente: {agendamento.cliente?.nome}</p>
-                        </div>
-                        <span className={`px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(agendamento.status)}`}>
-                          {agendamento.status.toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="grid md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                          <p className="text-gray-400 text-sm">Data e Hora</p>
-                          <p className="text-white font-semibold">{new Date(agendamento.data_hora).toLocaleString('pt-BR')}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400 text-sm">Valor</p>
-                          <p className="text-yellow-400 font-bold text-lg">R$ {agendamento.valor_total.toFixed(2)}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        {agendamento.status === 'pendente' && (
-                          <button
-                            onClick={() => handleConfirmar(agendamento.id)}
-                            className="flex-1 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all"
-                          >
-                            Confirmar Agendamento
-                          </button>
-                        )}
-                        {agendamento.status === 'confirmado' && (
-                          <button
-                            onClick={() => handleConcluir(agendamento.id)}
-                            className="flex-1 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Concluir e Baixar Estoque
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
+      <main className="bg-[#0f1117] rounded-[32px] border border-white/5 p-8 min-h-[550px] shadow-2xl relative">
+        
+        {/* ABA: AGENDA / DASHBOARD */}
+        {(activeTab === 'agenda' || activeTab === 'dashboard') && (
+          <div className="grid gap-4 animate-in fade-in slide-in-from-left-4 duration-500">
+            <h2 className="text-xl font-black text-white mb-6 flex items-center gap-3 uppercase tracking-tighter italic">
+              <Calendar className="text-[#EAB308]" size={24} /> Próximas Sessões
+            </h2>
+            
+            {/* Funcionalidade do Clock: Estado vazio para agenda */}
+            {agendamentos.length === 0 ? (
+              <div className="p-20 border border-dashed border-white/10 rounded-[32px] text-center">
+                <Clock className="mx-auto text-white/10 mb-4" size={48} />
+                <p className="text-white/20 font-bold uppercase text-[10px] tracking-[0.2em]">
+                  Nenhuma sessão agendada para hoje
+                </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  {estoque.map((item) => (
-                    <div key={item.id} className={`rounded-xl p-5 border-2 ${item.quantidade <= item.nivel_minimo ? 'bg-red-900/20 border-red-500/50' : 'bg-gray-700 border-gray-600'}`}>
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-bold text-white text-lg">{item.nome}</h3>
-                        <p className="text-3xl font-bold text-yellow-400">{item.quantidade}</p>
-                      </div>
-                      <button
-                        onClick={() => handleReporEstoque(item.id, item.quantidade)}
-                        className="w-full px-4 py-2 bg-yellow-600 text-black font-semibold rounded-lg hover:bg-yellow-700 transition-all text-sm"
-                      >
-                        Repor Estoque
-                      </button>
-                    </div>
-                  ))}
+              agendamentos.map((ag) => (
+                <div key={ag._id} className="bg-black/40 p-6 rounded-2xl border border-white/5 flex justify-between items-center group hover:border-[#EAB308]/30 transition-all">
+                  <div>
+                    <h3 className="font-bold text-lg text-white">{ag.cliente?.nome}</h3>
+                    <p className="text-gray-500 text-sm">{ag.servico?.nome}</p>
+                  </div>
+                  {/* Funcionalidade do CheckCircle2: Confirmação de ação */}
+                  <button className="bg-white text-black px-6 py-3 rounded-xl font-black text-[10px] hover:bg-[#EAB308] transition-all uppercase tracking-widest flex items-center gap-2">
+                    <CheckCircle2 size={14} /> Finalizar
+                  </button>
                 </div>
-              </div>
+              ))
             )}
           </div>
-        </div>
-      </div>
+        )}
+
+        {/* ABA: ESTOQUE */}
+        {activeTab === 'estoque' && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter italic">
+                <Package className="text-[#EAB308]" size={24} /> Inventário
+              </h3>
+              <button className="bg-white text-black px-4 py-2 rounded-lg font-black text-[10px] hover:bg-[#EAB308] transition-all uppercase tracking-widest flex items-center gap-2">
+                <Plus size={14} /> Novo Item
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {estoque.map((item: any) => (
+                <div key={item._id} className="bg-black/40 p-6 rounded-2xl border border-white/5 group hover:border-[#EAB308]/30 transition-all">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <p className="font-black text-white text-sm uppercase">{item.nome}</p>
+                      <p className="text-[10px] text-white/30 uppercase font-bold tracking-widest">{item.categoria}</p>
+                    </div>
+                    <button className="p-2 text-white/10 hover:text-red-500 transition-colors">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <div className="flex justify-between items-end">
+                    <span className={`text-xl font-black ${item.quantidade < 5 ? 'text-red-500' : 'text-[#EAB308]'}`}>
+                      {item.quantidade} <small className="text-[10px] opacity-50 uppercase">un</small>
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ABA: GESTÃO / PORTFÓLIO */}
+        {(activeTab === 'gestao' || activeTab === 'equipe' || activeTab === 'servicos') && (
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <AdminConfig tab={activeTab === 'equipe' ? 'equipe' : 'servicos'} />
+
+            <div className="border-t border-white/5 pt-12">
+              <h3 className="font-black flex items-center gap-3 text-white uppercase text-sm tracking-[0.2em] italic mb-8">
+                <Camera size={20} className="text-[#EAB308]" /> Galeria de Trabalhos
+              </h3>
+
+              <div className="flex gap-3 mb-10">
+                <input 
+                  value={novaFoto} 
+                  onChange={e => setNovaFoto(e.target.value)} 
+                  type="text" 
+                  placeholder="URL da nova obra..." 
+                  className="flex-1 bg-black border border-white/10 p-4 rounded-2xl outline-none focus:border-[#EAB308] text-xs transition-all text-white" 
+                />
+                <button className="bg-[#EAB308] text-black px-8 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
+                   <Plus size={14} /> Adicionar
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="aspect-square bg-black rounded-3xl border border-white/5 overflow-hidden group relative">
+                    <img src={`https://picsum.photos/400/400?random=${i}`} alt="Portfolio" className="w-full h-full object-cover opacity-40 group-hover:opacity-100 transition-all duration-700" />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button className="bg-red-600 text-white p-3 rounded-full hover:scale-110 transition-transform">
+                          <Trash2 size={18} />
+                        </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

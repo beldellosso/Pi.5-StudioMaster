@@ -1,44 +1,44 @@
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Toaster } from 'react-hot-toast';
+
+import Home from './components/Home';
 import Login from './components/Login';
 import ClienteArea from './components/ClienteArea';
-import TatuadorDashboard from './components/TatuadorDashboard';
-import { Toaster } from 'react-hot-toast'; // Importação correta
+import DashboardContainer from './components/DashboardContainer';
 
 function AppContent() {
   const { usuario, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Carregando StudioMaster...</p>
-        </div>
-      </div>
-    );
-  }
+  // Enquanto o AuthContext verifica se há alguém logado, mostramos uma tela preta
+  if (loading) return <div className="bg-black min-h-screen" />;
 
-  if (!usuario) {
-    return <Login />;
-  }
+  return (
+    <Routes>
+      {/* Rota Inicial: Landing Page */}
+      <Route path="/" element={<Home />} />
+      
+      {/* Rotas de Login: Passando o 'tipo' como prop para o componente Login */}
+      <Route path="/login/empresa" element={<Login tipo="tatuador" />} />
+      <Route path="/login/cliente" element={<Login tipo="cliente" />} />
 
-  // Diferenciação de rotas baseada no tipo de usuário do banco
-  return usuario.tipo === 'tatuador' ? (
-    <TatuadorDashboard />
-  ) : (
-    <ClienteArea />
+      {/* Rota de Dashboard: Protegida e Condicional */}
+      <Route 
+        path="/dashboard" 
+        element={
+          usuario ? (
+            usuario.tipo === 'cliente' ? <ClienteArea /> : <DashboardContainer />
+          ) : <Navigate to="/" />
+        } 
+      />
+    </Routes>
   );
 }
 
 export default function App() {
   return (
     <AuthProvider>
-      {/* O Toaster PRECISA estar aqui dentro para as mensagens funcionarem */}
-      <Toaster 
-        position="top-center" 
-        reverseOrder={false} 
-        gutter={8}
-      />
+      <Toaster position="top-right" />
       <AppContent />
     </AuthProvider>
   );

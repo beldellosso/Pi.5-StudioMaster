@@ -1,10 +1,15 @@
-import { useState } from 'react';
-import { LogIn as LoginIcon, UserPlus, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { LogIn as LoginIcon, UserPlus, Sparkles, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-export default function Login() {
+
+interface LoginProps {
+  tipo?: 'tatuador' | 'cliente';
+}
+
+export default function Login({ tipo: tipoInicial }: LoginProps) {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
 
@@ -13,63 +18,46 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [tipo, setTipo] = useState<'cliente' | 'tatuador'>('cliente');
-  const [error, setError] = useState('');
+  const [tipo, setTipo] = useState<'cliente' | 'tatuador'>(tipoInicial || 'cliente');
   const [loading, setLoading] = useState(false);
 
-  // Função para limpar os campos do formulário
+  // Sincroniza o estado interno se a prop mudar
+  useEffect(() => {
+    if (tipoInicial) setTipo(tipoInicial);
+  }, [tipoInicial]);
+
   const limparCampos = () => {
     setEmail('');
     setPassword('');
     setNome('');
     setTelefone('');
-    setTipo('cliente');
-    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
       if (isLogin) {
         await signIn(email, password);
         toast.success('Bem-vindo de volta!', {
-          style: {
-            background: '#111827',
-            color: '#fff',
-            border: '1px solid #eab308',
-          },
+          style: { background: '#0f1117', color: '#fff', border: '1px solid #eab308' },
         });
-        navigate('/'); 
+        navigate('/dashboard'); 
       } else {
         await signUp(email, password, nome, tipo, telefone);
-        
-        // Após cadastrar, limpa os campos e volta para o login
         limparCampos();
         setIsLogin(true);
-        
         toast.success('Cadastro realizado! Faça seu login.', {
-          duration: 4000,
           icon: '✨',
-          style: {
-            borderRadius: '10px',
-            background: '#111827',
-            color: '#fff',
-            border: '1px solid #eab308',
-          },
+          style: { background: '#0f1117', color: '#fff', border: '1px solid #eab308' },
         });
       }
     } catch (err: any) {
-      const msgErro = err.response?.data?.error || err.message || 'Erro ao processar solicitação.';
-      setError(msgErro);
+      console.error("Erro na autenticação:", err);
+      const msgErro = err.response?.data?.message || err.response?.data?.error || 'Falha na conexão com o servidor.';
       toast.error(msgErro, {
-        style: {
-          background: '#111827',
-          color: '#ef4444',
-          border: '1px solid #ef4444',
-        },
+        style: { background: '#0f1117', color: '#ef4444', border: '1px solid #ef4444' },
       });
     } finally {
       setLoading(false);
@@ -78,109 +66,66 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-gray-900 rounded-2xl p-8 border border-gray-800 shadow-2xl">
+      <div className="max-w-md w-full bg-[#0f1117] rounded-3xl p-8 border border-white/5 shadow-2xl relative">
+        
+        {/* Link de Retorno para Home */}
+        <Link to="/" className="absolute -top-12 left-0 flex items-center gap-2 text-white/40 hover:text-[#EAB308] text-[10px] font-bold uppercase tracking-widest transition-all">
+           <ArrowLeft size={14} /> Voltar para o site
+        </Link>
+
         <div className="text-center mb-8">
-          <div className="inline-block p-3 bg-yellow-500/10 rounded-full mb-4">
-            <Sparkles className="w-8 h-8 text-yellow-500" />
+          <div className="inline-block p-4 bg-yellow-500/10 rounded-2xl mb-4">
+            <Sparkles className="w-8 h-8 text-[#EAB308]" />
           </div>
-          <h1 className="text-3xl font-bold text-white">StudioMaster</h1>
-          <p className="text-gray-400 mt-2">
-            {isLogin ? 'Bem-vindo!' : 'Crie sua conta no Studio'}
+          <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter">
+            Studio<span className="text-[#EAB308]">Master</span>
+          </h1>
+          <p className="text-white/40 text-xs uppercase tracking-[0.2em] mt-2 font-bold">
+            {isLogin ? `Acesso ${tipo}` : 'Crie sua conta profissional'}
           </p>
         </div>
-
-        {error && (
-          <div className="bg-red-900/20 border border-red-500 text-red-500 px-4 py-2 rounded-lg mb-6 text-sm">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Nome Completo</label>
-                <input
-                  type="text"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  required
-                />
+                <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1 ml-1">Nome Completo</label>
+                <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#EAB308] outline-none transition-all" required />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Telefone</label>
-                <input
-                  type="text"
-                  value={telefone}
-                  onChange={(e) => setTelefone(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Tipo de Perfil</label>
-                <select
-                  value={tipo}
-                  onChange={(e) => setTipo(e.target.value as 'cliente' | 'tatuador')}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                >
-                  <option value="cliente">Cliente</option>
-                  <option value="tatuador">Tatuador (Admin)</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1 ml-1">Telefone</label>
+                  <input type="text" value={telefone} onChange={(e) => setTelefone(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#EAB308] outline-none" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1 ml-1">Perfil</label>
+                  <select value={tipo} onChange={(e) => setTipo(e.target.value as 'cliente' | 'tatuador')} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#EAB308] outline-none appearance-none">
+                    <option value="cliente" className="bg-[#0f1117]">Cliente</option>
+                    <option value="tatuador" className="bg-[#0f1117]">Tatuador</option>
+                  </select>
+                </div>
               </div>
             </>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">E-mail</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-              required
-            />
+            <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1 ml-1">E-mail</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#EAB308] outline-none transition-all" required />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Senha</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-              required
-            />
+            <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1 ml-1">Senha</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#EAB308] outline-none transition-all" required />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 rounded-lg transition-colors mt-6 flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {loading ? (
-              'Processando...'
-            ) : isLogin ? (
-              <>
-                <LoginIcon className="w-5 h-5" /> <span>Entrar</span>
-              </>
-            ) : (
-              <>
-                <UserPlus className="w-5 h-5" /> <span>Criar Conta</span>
-              </>
-            )}
+          <button type="submit" disabled={loading} className="w-full bg-[#EAB308] hover:brightness-110 text-black font-black py-4 rounded-xl transition-all mt-6 flex items-center justify-center gap-2 disabled:opacity-50 uppercase text-xs tracking-widest shadow-lg shadow-yellow-900/20">
+            {loading ? 'Processando...' : isLogin ? <><LoginIcon className="w-4 h-4" /> <span>Entrar no Sistema</span></> : <><UserPlus className="w-4 h-4" /> <span>Finalizar Cadastro</span></>}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => {
-              limparCampos(); // Limpa ao trocar de tela
-              setIsLogin(!isLogin);
-            }}
-            className="text-yellow-500 hover:text-yellow-400 text-sm font-medium"
-          >
-            {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Faça login'}
+        <div className="mt-8 text-center border-t border-white/5 pt-6">
+          <button onClick={() => { limparCampos(); setIsLogin(!isLogin); }} className="text-[#EAB308] hover:text-yellow-400 text-[10px] font-black uppercase tracking-widest transition-colors">
+            {isLogin ? 'Não tem uma conta? Cadastre-se aqui' : 'Já possui acesso? Faça o login'}
           </button>
         </div>
       </div>
