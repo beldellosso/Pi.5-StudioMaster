@@ -1,0 +1,15 @@
+
+# Dependências
+node_modules/
+package-lock.json
+
+# Variáveis de ambiente (Segurança!)
+.env
+.env.local
+
+# Logs e outros
+logs/
+*.log
+dist/
+build/
+.DS_Store

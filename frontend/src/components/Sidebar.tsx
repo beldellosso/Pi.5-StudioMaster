@@ -1,91 +1,78 @@
-import { LayoutDashboard, Calendar, Camera, Users, DollarSign, Settings, LogOut, Package } from 'lucide-react';
+import { LayoutDashboard, Calendar, DollarSign, Package, Users, LogOut, Search, MessageCircle, Camera } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  role: string;
 }
 
-export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
-  const { signOut, usuario } = useAuth();
+export default function Sidebar({ activeTab, setActiveTab, role }: SidebarProps) {
+  const { signOut } = useAuth();
 
-  // Padronização de role para evitar erros de undefined
-  const userRole = (usuario?.role || usuario?.tipo || '').toLowerCase();
+  const getMenuItems = () => {
+    switch (role) {
+      case 'admin':
+        return [
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          { id: 'agenda', label: 'Agenda', icon: Calendar },
+          { id: 'financeiro', label: 'Financeiro', icon: DollarSign },
+          { id: 'estoque', label: 'Estoque', icon: Package },
+          { id: 'equipe', label: 'Equipe', icon: Users },
+        ];
+      case 'tatuador': 
+        return [
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+          { id: 'agenda', label: 'Agenda', icon: Calendar },
+          { id: 'estoque', label: 'Inventário', icon: Package },
+          { id: 'portfolio', label: 'Portfólio', icon: Camera },
+          { id: 'equipe', label: 'Equipe', icon: Users }, // Adicionado
+        ];
+      default:
+        return [
+          { id: 'explorar', label: 'Explorar Studios', icon: Search },
+          { id: 'agenda', label: 'Agenda', icon: Calendar },
+          { id: 'meus-agendamentos', label: 'Meus Agendamentos', icon: Clock },
+          { id: 'ajuda', label: 'Central de Ajuda', icon: MessageCircle },
+        ];
+    }
+  };
 
-  const allMenuItems = [
-    { id: 'dashboard', label: 'Painel Geral', icon: LayoutDashboard, roles: ['admin', 'funcionario'] },
-    { id: 'agenda', label: 'Minha Agenda', icon: Calendar, roles: ['admin', 'funcionario'] },
-    { id: 'portfolio', label: 'Meu Portfólio', icon: Camera, roles: ['admin', 'funcionario'] },
-    { id: 'equipe', label: 'Gestão de Equipe', icon: Users, roles: ['admin'] },
-    { id: 'servicos', label: 'Serviços/Preços', icon: Settings, roles: ['admin'] },
-    { id: 'estoque', label: 'Suprimentos', icon: Package, roles: ['admin', 'funcionario'] },
-    { id: 'financeiro', label: 'Financeiro', icon: DollarSign, roles: ['admin'] },
-  ];
-
-  // Filtra o menu com base nas permissões
-  const filteredMenu = allMenuItems.filter(item =>
-    item.roles.includes(userRole)
-  );
-
-  if (!usuario) return null;
+  const menuItems = getMenuItems();
 
   return (
-    <aside className="w-64 bg-[#0f1117] h-screen border-r border-white/5 flex flex-col fixed left-0 top-0 z-40">
-      
-      {/* BRANDING */}
-      <div className="p-8">
-        <h2 className="text-[#EAB308] font-black text-2xl italic tracking-tighter">
-          STUDIO<span className="text-white">MASTER</span>
-        </h2>
-        <div className="flex items-center gap-2 mt-1">
-          <span className="w-2 h-2 rounded-full bg-[#EAB308] animate-pulse" />
-          <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold">
-            {userRole === 'admin' ? 'Administração' : 'Área do Tatuador'}
-          </p>
+    <aside className="w-64 bg-[#050505] border-r border-white/5 h-screen fixed left-0 top-0 p-6 flex flex-col justify-between">
+      <div>
+        <div className="mb-10 px-2">
+          <h1 className="text-xl font-black text-white italic tracking-tighter">
+            MASTER <span className="text-[#EAB308]">DE ESTÚDIO</span>
+          </h1>
+          <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1 capitalize">{role}</p>
         </div>
+
+        <nav className="space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${
+                  isActive ? 'bg-[#EAB308] text-black' : 'text-white/60 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <Icon size={20} />
+                {item.label}
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* MENU DE NAVEGAÇÃO */}
-      <nav className="flex-1 px-4 space-y-1.5">
-        {filteredMenu.map((item) => {
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 font-bold text-sm ${
-                isActive 
-                  ? 'bg-[#EAB308] text-black shadow-[0_0_20px_rgba(234,179,8,0.2)] scale-[1.02]' 
-                  : 'text-gray-500 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-              {item.label}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* PERFIL E LOGOUT */}
-      <div className="p-6 border-t border-white/5 bg-black/20">
-        <div className="flex items-center gap-3 mb-4 px-2">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#EAB308] to-yellow-600 flex items-center justify-center text-black font-black border border-white/10 shadow-lg">
-            {usuario?.nome?.charAt(0).toUpperCase()}
-          </div>
-          <div className="overflow-hidden">
-            <p className="text-xs font-bold text-white truncate">{usuario?.nome}</p>
-            <p className="text-[9px] text-[#EAB308] uppercase font-black tracking-widest opacity-80">
-              {userRole}
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={signOut}
-          className="w-full group flex items-center gap-3 px-4 py-2.5 rounded-xl text-gray-500 hover:text-red-500 hover:bg-red-500/10 text-xs font-bold transition-all"
-        >
-          <LogOut size={14} className="group-hover:-translate-x-1 transition-transform" /> 
-          Sair do Sistema
+      <div className="pt-6 border-t border-white/5">
+        <button onClick={signOut} className="flex items-center gap-3 w-full px-4 py-3 text-red-400 hover:text-red-300 transition-colors">
+          <LogOut size={20} /> Sair do App
         </button>
       </div>
     </aside>

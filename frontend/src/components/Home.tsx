@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Target, Star, User, Building2, Check, Camera, MessageSquare, ArrowRight, Zap, Trophy, Crown } from 'lucide-react';
+import { Target, Star, User, Building2, Check, Camera, MessageSquare, ArrowRight, Zap, Trophy, Crown, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import Footer from '../components/Footer'; // Ajuste o caminho se necessário
 
 export default function Home() {
   const [loginMenuOpen, setLoginMenuOpen] = useState(false);
@@ -40,20 +41,31 @@ export default function Home() {
           <a href="#planos" className="hover:text-[#EAB308] transition-colors">Planos</a>
         </nav>
 
+        {/* MENU DE ACESSO COERENTE COM O SISTEMA */}
         <div className="relative">
-          <button onClick={() => setLoginMenuOpen(!loginMenuOpen)} className="bg-[#EAB308] text-black text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-md flex items-center gap-2 hover:brightness-110 transition-all">
-            Área de Acesso <ArrowRight size={12} />
+          <button 
+            onClick={() => setLoginMenuOpen(!loginMenuOpen)} 
+            className="bg-[#EAB308] text-black text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-xl flex items-center gap-2 hover:bg-yellow-400 transition-all shadow-md shadow-yellow-900/10"
+          >
+            <span>Área de Acesso</span> 
+            <ChevronDown size={12} className={`transition-transform duration-300 ${loginMenuOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {loginMenuOpen && (
-            <div className="absolute top-full right-0 mt-3 w-56 bg-white rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95">
-              <Link to="/login/empresa" className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 transition-colors">
-                <Building2 size={18} className="text-gray-400" />
-                <span className="text-sm font-bold text-gray-700">Sou Tatuador</span>
+            <div className="absolute top-full right-0 mt-2.5 w-48 bg-[#0f1117]/95 backdrop-blur-md border border-white/5 rounded-xl p-1.5 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200 z-50 space-y-1">
+              <Link 
+                to="/login/empresa" 
+                onClick={() => setLoginMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white hover:text-[#EAB308] text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all"
+              >
+                <Building2 size={10} /> Área do Estúdio
               </Link>
-              <Link to="/login/cliente" className="flex items-center gap-3 p-3 rounded-lg hover:bg-yellow-50 transition-colors border-t border-gray-50">
-                <User size={18} className="text-[#EAB308]" />
-                <span className="text-sm font-bold text-[#EAB308]">Sou Cliente</span>
+              <Link 
+                to="/login/cliente" 
+                onClick={() => setLoginMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white hover:text-[#EAB308] text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all"
+              >
+                <User size={10} /> Área do Cliente
               </Link>
             </div>
           )}
@@ -129,6 +141,9 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* FOOTER INTEGRADO */}
+      <Footer />
     </div>
   );
 }

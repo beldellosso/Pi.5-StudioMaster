@@ -5,6 +5,7 @@ export interface Usuario {
   role?: string;   
   tipo?: string;   
 }
+
 export interface Servico {
   id: string;
   nome: string;

@@ -4,11 +4,23 @@ import { Usuario } from '../types';
 
 const API_URL = 'http://localhost:5000/api';
 
+// Interface atualizada para usar o nome correto da coluna do seu banco (nome_studio)
+interface CadastroDados {
+  email: string;
+  password?: string;
+  nome: string;
+  tipo: 'cliente' | 'tatuador' | 'funcionario';
+  telefone?: string;
+  cnpj?: string;
+  nome_studio?: string; // Alinhado com o SQL
+  especialidade?: string;
+}
+
 interface AuthContextType {
   usuario: Usuario | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, nome: string, tipo: 'cliente' | 'tatuador', telefone?: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<any>;
+  signUp: (dados: CadastroDados) => Promise<void>;
   signOut: () => void;
 }
 
@@ -18,14 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Recupera o usuário do localStorage ao carregar a aplicação
   useEffect(() => {
     const usuarioSalvo = localStorage.getItem('@StudioMaster:user');
     if (usuarioSalvo) {
       try {
         const user = JSON.parse(usuarioSalvo);
         setUsuario(user);
-        // Se usar JWT, reconfigura o header aqui:
         if (user.token) {
           axios.defaults.headers.common['Authorization'] = `Bearer ${user.token}`;
         }
@@ -36,7 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  // Função de Login
   const signIn = async (email: string, password: string) => {
     try {
       const response = await axios.post(`${API_URL}/usuarios/login`, { 
@@ -45,11 +54,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       const user = response.data.user;
-
-      // Padronização: garante que role exista e esteja em minúsculo
+      const tipoDefinido = (user.tipo || user.role || 'cliente').toLowerCase();
+      
       const dadosUsuario = {
         ...user,
-        role: (user.role || user.tipo || 'cliente').toLowerCase()
+        id: user.id || user._id, 
+        tipo: tipoDefinido,
+        role: tipoDefinido
       };
 
       setUsuario(dadosUsuario);
@@ -58,39 +69,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (user.token) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${user.token}`;
       }
+
+      return dadosUsuario;
     } catch (error: any) {
-      console.error('Erro no login:', error);
       throw new Error(error.response?.data?.error || 'Erro ao realizar login');
     }
   };
 
-  // Função de Cadastro (Corrigida e incluída no escopo)
-  const signUp = async (
-    email: string,
-    password: string,
-    nome: string,
-    tipo: 'cliente' | 'tatuador',
-    telefone?: string
-  ) => {
+  const signUp = async (dados: CadastroDados) => {
     try {
-      await axios.post(`${API_URL}/usuarios/registrar`, {
-        email,
-        senha: password,
-        nome,
-        role: tipo, // Envia o tipo selecionado no formulário
-        telefone
-      });
+      // Montagem do payload rigoroso, garantindo os nomes que o seu backend espera
+      const payload = {
+        email: dados.email,
+        senha: dados.password,
+        nome: dados.nome,
+        tipo: dados.tipo,
+        role: dados.tipo,
+        telefone: dados.telefone || null,
+        cnpj: dados.cnpj || null,
+        nome_studio: dados.nome_studio || null, // A chave é nome_studio
+        especialidade: dados.especialidade || null
+      };
+
+      await axios.post(`${API_URL}/usuarios/registrar`, payload);
+      
     } catch (error: any) {
-      console.error('Erro no cadastro:', error);
-      throw new Error(
-        error.response?.data?.error || 
-        error.response?.data?.message || 
-        'Erro ao realizar cadastro'
-      );
+      // Log de depuração mantido para que você possa ver o erro exato caso falhe novamente
+      console.error('ERRO NO CADASTRO (JSON):', JSON.stringify(error.response?.data, null, 2));
+      
+      const mensagem = error.response?.data?.error || 
+                       error.response?.data?.message || 
+                       'Erro ao realizar cadastro';
+      throw new Error(mensagem);
     }
   };
 
-  // Função de Logout
   const signOut = () => {
     localStorage.removeItem('@StudioMaster:user');
     setUsuario(null);
