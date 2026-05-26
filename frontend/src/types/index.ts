@@ -2,8 +2,13 @@ export interface Usuario {
   id: string;
   nome: string;
   email: string;
+  token?: string;
   role?: string;   
-  tipo?: string;   
+  tipo?: 'cliente' | 'tatuador' | 'funcionario';   
+  nome_studio?: string;
+  especialidade?: string;
+  endereco?: string;
+  dono_id?: string;
 }
 
 export interface Servico {

@@ -1,13 +1,14 @@
-import { LayoutDashboard, Calendar, DollarSign, Package, Users, LogOut, Search, MessageCircle, Camera } from 'lucide-react';
+import { LayoutDashboard, Calendar, DollarSign, Package, Users, LogOut, Search, MessageCircle, Camera, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   role: string;
+  userName?: string; // Adicionado para receber o nome
 }
 
-export default function Sidebar({ activeTab, setActiveTab, role }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, role, userName }: SidebarProps) {
   const { signOut } = useAuth();
 
   const getMenuItems = () => {
@@ -26,7 +27,7 @@ export default function Sidebar({ activeTab, setActiveTab, role }: SidebarProps)
           { id: 'agenda', label: 'Agenda', icon: Calendar },
           { id: 'estoque', label: 'Inventário', icon: Package },
           { id: 'portfolio', label: 'Portfólio', icon: Camera },
-          { id: 'equipe', label: 'Equipe', icon: Users }, // Adicionado
+          { id: 'equipe', label: 'Equipe', icon: Users },
         ];
       default:
         return [
@@ -45,9 +46,10 @@ export default function Sidebar({ activeTab, setActiveTab, role }: SidebarProps)
       <div>
         <div className="mb-10 px-2">
           <h1 className="text-xl font-black text-white italic tracking-tighter">
-            MASTER <span className="text-[#EAB308]">DE ESTÚDIO</span>
+            ESTÚDIO <span className="text-[#EAB308]">MASTER</span>
           </h1>
-          <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1 capitalize">{role}</p>
+          {/* Exibindo o nome do usuário logado */}
+          <p className="text-[11px] text-[#EAB308] font-bold uppercase tracking-widest mt-2">{userName || role}</p>
         </div>
 
         <nav className="space-y-2">

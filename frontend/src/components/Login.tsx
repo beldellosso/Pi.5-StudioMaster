@@ -25,14 +25,25 @@ export default function Login({ tipo: tipoInicial }: LoginProps) {
     e.preventDefault();
     setLoading(true);
     try {
+      // O signIn agora retorna o objeto completo com token e tipo
       const usuarioLogado = await signIn(email, password);
+      
       toast.success('Bem-vindo de volta!', {
         style: { background: '#0f1117', color: '#fff', border: '1px solid #eab308' },
       });
-      const userRole = usuarioLogado?.role || tipo;
-      if (userRole === 'tatuador') navigate('/dashboard-profissional');
-      else if (userRole === 'funcionario') navigate('/dashboard-recepcao');
-      else navigate('/dashboard');
+
+      // Redirecionamento baseado no tipo vindo do banco de dados (mais seguro)
+      switch (usuarioLogado.tipo) {
+        case 'tatuador':
+          navigate('/dashboard-profissional');
+          break;
+        case 'funcionario':
+          navigate('/dashboard-recepcao');
+          break;
+        default:
+          navigate('/dashboard');
+          break;
+      }
     } catch (err: any) {
       const msgErro = err.response?.data?.message || err.response?.data?.error || err.message || 'Falha na conexão.';
       toast.error(msgErro, { style: { background: '#0f1117', color: '#ef4444', border: '1px solid #ef4444' } });

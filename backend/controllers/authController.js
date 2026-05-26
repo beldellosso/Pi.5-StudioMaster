@@ -2,7 +2,10 @@ const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 exports.registrar = async (req, res) => {
     try {
@@ -38,5 +41,48 @@ exports.login = async (req, res) => {
         }
     } catch (error) {
         res.status(500).json({ error: "Erro no servidor." });
+    }
+};
+
+
+exports.registrarFuncionario = async (req, res) => {
+    try {
+        const { nome, email, senha, donoId } = req.body;
+        
+        // Adicione este log para ver no terminal do servidor se os dados estão chegando
+        console.log("Dados recebidos no backend:", { nome, email, donoId });
+
+        const salt = await bcrypt.genSalt(10);
+        const senhaHash = await bcrypt.hash(senha, salt);
+
+        const { data, error } = await supabase
+            .from('usuarios')
+            .insert([{ 
+                nome, 
+                email, 
+                senha: senhaHash, 
+                tipo: 'funcionario', 
+                dono_id: donoId 
+            }])
+            .select();
+
+       if (error) {
+    console.error(
+        "ERRO COMPLETO SUPABASE:",
+        JSON.stringify(error, null, 2)
+    );
+
+    return res.status(400).json({
+        error: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+    });
+}
+        
+        res.status(201).json({ message: "Funcionário cadastrado com sucesso!", user: data[0] });
+    } catch (error) {
+        console.error("Erro interno:", error);
+        res.status(500).json({ error: "Erro interno no servidor." });
     }
 };
